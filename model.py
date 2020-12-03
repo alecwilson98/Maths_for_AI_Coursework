@@ -5,42 +5,42 @@ import pandas as pd
 # Defines the Batch Gradient Descent linear regression class
 class BGD:
 
-    def __init__(self, iterations=100000, learning_rate=0.0000001):
+    def __init__(self, iterations=10000, learning_rate=0.01):
         # Hyper-parameters
         self.iterations = iterations
         self.learning_rate = learning_rate
 
     def fit(self, X, Y):
         self.m, self.n = X.shape
-        # Initialising weights
-        self.W = np.zeros([self.n])
-        self.b = 0
+        self.thetas = np.random.rand(self.n, 1)
         self.X = X
         self.Y = Y
 
         for i in range(self.iterations):
-            self.iterate()
-        return self
+            # Difference between predicted and actual values
+            error = np.dot(X, self.thetas) - Y
+            # Sum of squares function
+            cost = np.sum(error ** 2) / (2 * self.m)
+            # Compute gradient
+            grad = np.dot(X.T, error) / self.m
+            # Update coefficients
+            self.thetas = self.thetas - self.learning_rate*grad
 
-    def iterate(self):
-
-        Y_pred = self.predict(self.X)
-
-        # Differential of the loss function with resect to w and b
-        dw = np.average(-2 * (self.X.T).dot(self.Y - Y_pred))
-        db = np.average(-2 * np.sum(self.Y - Y_pred))
-
-        # Update weights
-        self.W = self.W - (self.learning_rate * dw)
-        self.b = self.b - (self.learning_rate * db)
-        return self
+        return self.thetas
 
     def predict(self, X):
-        return X.dot(self.W) - self.b
+        return np.dot(X, self.thetas)
+
+    def eval(self, X, Y):
+        RMSE = np.sqrt(((self.predict(X) - Y) ** 2).mean())
+        r2 = 1 - (np.sum((Y - self.predict(X)) ** 2)) / (np.sum((Y - Y.mean()) ** 2))
+
+        print("RMSE :", RMSE)
+        print("R-Squared: ", r2)
 
 # Defines the Stochastic Gradient Descent linear regression class
 class SGD:
-    def __init__(self, epochs=100000, t0=5, t1=500):
+    def __init__(self, epochs=1000, t0=5, t1=500):
         # Hyper-parameters
         self.epochs = epochs
         self.t0 = t0
@@ -51,32 +51,32 @@ class SGD:
 
     def fit(self, X, Y):
         self.m, self.n = X.shape
-        # Initialising weights
-        self.W = np.random.randint(1, 2, self.n)
-        self.b = 0
-        random = np.random.randint(self.m)
-        self.xi = X[random:random+1]
-        self.yi = Y[random:random+1]
+        self.thetas = np.random.rand(self.n, 1)
+        self.random = np.random.randint(self.m)
+        self.xi = X[self.random:self.random + 1]
+        self.yi = Y[self.random:self.random + 1]
 
         for epoch in range(self.epochs):
-            self.iterate()
-        return self
+            for i in range(self.m):
+                # Difference between predicted and actual values
+                error = np.dot(self.xi, self.thetas) - self.yi
+                # Sum of squares function
+                cost = np.sum(error ** 2) / (2 * self.m)
+                # Compute gradient
+                grad = np.dot(self.xi.T, error) / self.m
+                # Update coefficients
+                self.thetas = self.thetas - (self.learning_schedule(self.epochs * self.m + i) * grad)
+        return self.thetas
 
-    def iterate(self):
-        for i in range(self.m):
-            Y_pred = self.predict(self.xi)
+    def predict(self, X):
+        return np.dot(self.xi, self.thetas)
 
-            # Differential of the loss function with resect to w and b
-            dw = np.average(-2 * (self.xi.T).dot(self.yi - Y_pred))
-            db = np.average(-2 * np.sum(self.yi - Y_pred))
+    def eval(self, X, Y):
+        RMSE = np.sqrt(((self.predict(X) - Y) ** 2).mean())
+        r2 = 1 - (np.sum((Y - self.predict(X)) ** 2)) / (np.sum((Y - Y.mean()) ** 2))
 
-            # Update weights
-            self.W = self.W - (self.learning_schedule(self.epochs * self.m + i) * dw)
-            self.b = self.b - (self.learning_schedule(self.epochs * self.m + i) * db)
-            return self
-
-    def predict(self, xi):
-        return xi.dot(self.W) - self.b
+        print("RMSE :", RMSE)
+        print("R-Squared: ", r2)
 
 # Defines the Mini-Batch Gradient Descent linear regression class
 class MBGD:
@@ -130,7 +130,7 @@ class MBGD:
             self.b = self.b - (learning_rate * (nabla_b/self.mini_batch_size))
 
     def predict(self, X):
-        return X.dot(self.W) + self.b
+        return np.sum(X.dot(self.W) + self.b)
 
 
 def main():
@@ -158,35 +158,13 @@ def main():
     X_test = X.iloc[400:]
     Y_test = Y.iloc[400:]
 
-    # BGD
-    '''
     gd.fit(X_train, Y_train)
-    Y_pred = gd.predict(X_test)
+    gd.eval(X_test, Y_test)
 
-    print("Predicted values ", Y_pred[:3])
-    print("Real values      ", Y_test[:3])
-    print("Trained W        ", gd.W)
-    print("Trained b        ", gd.b)
+    sgd.fit(X_train, Y_train)
+    sgd.eval(X_test, Y_test)
 
-    # Visualization on test set
 
-    plt.scatter(X_test, Y_test, color='blue')
-    plt.plot(X_test, Y_pred, color='orange')
-    plt.show(Block=True)
-'''
-    sgd.fit(X_train, Y_train, 0)
-    Y_pred = sgd.predict(X_test)
-
-    print("Predicted values ", Y_pred[:3])
-    print("Real values      ", Y_test[:3])
-    print("Trained W        ", sgd.W)
-    print("Trained b        ", sgd.b)
-
-    # Visualization on test set
-
-    plt.scatter(X_test, Y_test, color='blue')
-    plt.plot(X_test, Y_pred, color='orange')
-    plt.show(Block=True)
 
 if __name__ == '__main__':
     main()
