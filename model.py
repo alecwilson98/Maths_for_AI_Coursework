@@ -1,6 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
+import random
 
 # Defines the Batch Gradient Descent linear regression class
 class BGD:
@@ -11,6 +12,7 @@ class BGD:
         self.learning_rate = learning_rate
 
     def fit(self, X, Y):
+        # Define structure
         self.m, self.n = X.shape
         self.thetas = np.random.rand(self.n, 1)
         self.X = X
@@ -25,12 +27,13 @@ class BGD:
             grad = np.dot(X.T, error) / self.m
             # Update coefficients
             self.thetas = self.thetas - self.learning_rate*grad
-
         return self.thetas
 
+    # Function used to predict dependent variable of test set data
     def predict(self, X):
         return np.dot(X, self.thetas)
 
+    # Function which defines the evaluation metrics; RMSE, R-Squared
     def eval(self, X, Y):
         RMSE = np.sqrt(((self.predict(X) - Y) ** 2).mean())
         r2 = 1 - (np.sum((Y - self.predict(X)) ** 2)) / (np.sum((Y - Y.mean()) ** 2))
@@ -40,7 +43,7 @@ class BGD:
 
 # Defines the Stochastic Gradient Descent linear regression class
 class SGD:
-    def __init__(self, epochs=1000, t0=5, t1=500):
+    def __init__(self, epochs=500, t0=5, t1=500):
         # Hyper-parameters
         self.epochs = epochs
         self.t0 = t0
@@ -50,27 +53,36 @@ class SGD:
         return self.t0 / (t + self.t1)
 
     def fit(self, X, Y):
+        # Define Structure
         self.m, self.n = X.shape
         self.thetas = np.random.rand(self.n, 1)
-        self.random = np.random.randint(self.m)
-        self.xi = X[self.random:self.random + 1]
-        self.yi = Y[self.random:self.random + 1]
 
+        # Iterates over the number of epochs chosen
         for epoch in range(self.epochs):
+            # Iterates over the number of rows; in each iteration a random row of the data is selected
             for i in range(self.m):
+                # Defines the random row number for the current iteration
+                r = np.random.randint(self.m)
+                # Picks out the random row number defined by r from the data
+                xi = X.iloc[r: r+1]
+                yi = Y.values[r: r+1]
                 # Difference between predicted and actual values
-                error = np.dot(self.xi, self.thetas) - self.yi
+                error = np.dot(xi, self.thetas) - yi
                 # Sum of squares function
                 cost = np.sum(error ** 2) / (2 * self.m)
                 # Compute gradient
-                grad = np.dot(self.xi.T, error) / self.m
+                grad = 2 * np.dot(xi.T, error)
+                # Define Learning rate
+                lr = self.learning_schedule(self.epochs * self.m + i)
                 # Update coefficients
-                self.thetas = self.thetas - (self.learning_schedule(self.epochs * self.m + i) * grad)
+                self.thetas = self.thetas - (lr * grad)
         return self.thetas
 
+    # Function used to predict dependent variable of test set data
     def predict(self, X):
-        return np.dot(self.xi, self.thetas)
+        return np.dot(X, self.thetas)
 
+    # Function which defines the evaluation metrics; RMSE, R-Squared
     def eval(self, X, Y):
         RMSE = np.sqrt(((self.predict(X) - Y) ** 2).mean())
         r2 = 1 - (np.sum((Y - self.predict(X)) ** 2)) / (np.sum((Y - Y.mean()) ** 2))
@@ -81,62 +93,60 @@ class SGD:
 # Defines the Mini-Batch Gradient Descent linear regression class
 class MBGD:
 
-    def __init__(self, iterations=10, learning_rate=1, mini_batch_size=50):
+    def __init__(self, epochs=10000, learning_rate=0.01, mini_batch_size=20):
         # Hyper-parameters
-        self.iterations = iterations
+        self.epochs = epochs
         self.learning_rate = learning_rate
         self.mini_batch_size = mini_batch_size
 
-        # Number of training examples and features
-        self.m, self.n = X.shape
-
-        # Initialising weights
-        self.W = np.zeros(self.m)
-        self.b = 0
+    def batch_size(self, X, Y, b):
+        # Define structure
         self.X = X
         self.Y = Y
+        # Define batches
+        new_size = b + self.mini_batch_size
+        X_new = X.iloc[b:new_size]
+        Y_new = Y.values[b:new_size]
+        return X_new, Y_new
 
-    def mini_batch(self, learning_rate, batch_size, iterations):
+    def fit(self, X, Y):
+        # Initialising weights
+        self.m, self.n = X.shape
+        self.thetas = np.random.rand(self.n, 1)
+        num_batches = self.m/self.mini_batch_size
 
-        loss_log      = []
-        test_acc_log  = []
-        train_acc_log = []
+        # Iterates over the number of epochs chosen
+        for i in range(self.epochs):
+            # Iterates over the number of batches defined as: the number of rows / hyper-parameter mini_batch_size
+            for b in range(int(num_batches)):
+                # Define the batches of X and Y
+                X_batch, Y_batch = self.batch_size(X, Y, b)
+                # Difference between predicted and actual values
+                error = np.dot(X_batch, self.thetas) - Y_batch
+                # Sum of squares function
+                cost = np.sum(error ** 2) / (2 * self.m)
+                # Compute gradients
+                grad = np.dot(X_batch.T, error) / self.mini_batch_size
+                # Update coefficients
+                self.thetas = self.thetas - (self.learning_rate * grad)
+        return self.thetas
 
-        N = min(len(self.X_train), len(self.Y_train))
-        num_batches = int(N/self.mini_batch_size)
-
-        for t in range(self.iterations):
-            permutation = np.random.permutation(N)
-
-            for k in range(num_batches):
-                # Reset buffer containing updates
-                nabla_b = [np.zeros(b.shape) for b in self.b]
-                nabla_w = [np.zeros(w.shape) for w in self.W]
-
-                for i in range(self.mini_batch_size):
-
-                    x = self.X[permutation[k * self.mini_batch_size + i]]
-                    y = self.Y[permutation[k * self.mini_batch_size + i]]
-
-                    # Differential of the loss function with resect to w
-                    Y_pred = self.predict()
-                    dw = np.dot(np.transpose(Y_pred-self.Y), (Y_pred-self.Y))
-                    #db =
-                nabla_b = [n_b + d_b for n_b, d_b in zip(nabla_b, db)]
-                nabla_w = [n_w + d_w for n_w, d_w in zip(nabla_w, dw)]
-
-            # Update weights
-            self.W = self.W - (learning_rate * (nabla_w/self.mini_batch_size))
-            self.b = self.b - (learning_rate * (nabla_b/self.mini_batch_size))
-
+    # Function used to predict dependent variable of test set data
     def predict(self, X):
-        return np.sum(X.dot(self.W) + self.b)
+        return np.dot(X, self.thetas)
 
+    # Function which defines the evaluation metrics; RMSE, R-Squared
+    def eval(self, X, Y):
+        RMSE = np.sqrt(((self.predict(X) - Y) ** 2).mean())
+        r2 = 1 - (np.sum((Y - self.predict(X)) ** 2)) / (np.sum((Y - Y.mean()) ** 2))
+
+        print("RMSE :", RMSE)
+        print("R-Squared: ", r2)
 
 def main():
     gd = BGD()
     sgd = SGD()
-    #mgd = MBGD()
+    mgd = MBGD()
 
     # Reads the dataset and removes the serial number column
     df = pd.read_csv('/home/alecwilson/PycharmProjects/Maths_for_AI_Coursework/Admission_Predict_Ver1.csv')
@@ -158,18 +168,21 @@ def main():
     X_test = X.iloc[400:]
     Y_test = Y.iloc[400:]
 
-    gd.fit(X_train, Y_train)
+    '''gd.fit(X_train, Y_train)
+    y_pred = sgd.predict(X_test)
+    print("Predicted values", y_pred[:5])
     gd.eval(X_test, Y_test)
 
     sgd.fit(X_train, Y_train)
+    y_pred = sgd.predict(X_test)
+    print("Predicted values", y_pred[:5])
     sgd.eval(X_test, Y_test)
-
-
+'''
+    mgd.fit(X_train, Y_train)
+    y_pred = mgd.predict(X_test)
+    print("Predicted values", y_pred[:5])
+    mgd.eval(X_test, Y_test)
 
 if __name__ == '__main__':
     main()
-
-
-
-
 
