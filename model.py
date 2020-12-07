@@ -1,12 +1,11 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
-import random
 
 # Defines the Batch Gradient Descent linear regression class
 class BGD:
 
-    def __init__(self, iterations=10000, learning_rate=0.01):
+    def __init__(self, iterations=100000, learning_rate=0.4):
         # Hyper-parameters
         self.iterations = iterations
         self.learning_rate = learning_rate
@@ -21,12 +20,10 @@ class BGD:
         for i in range(self.iterations):
             # Difference between predicted and actual values
             error = np.dot(X, self.thetas) - Y
-            # Sum of squares function
-            cost = np.sum(error ** 2) / (2 * self.m)
             # Compute gradient
             grad = np.dot(X.T, error) / self.m
             # Update coefficients
-            self.thetas = self.thetas - self.learning_rate*grad
+            self.thetas = self.thetas - (self.learning_rate*grad)
         return self.thetas
 
     # Function used to predict dependent variable of test set data
@@ -43,7 +40,7 @@ class BGD:
 
 # Defines the Stochastic Gradient Descent linear regression class
 class SGD:
-    def __init__(self, epochs=500, t0=5, t1=500):
+    def __init__(self, epochs=10000, t0=5, t1=20):
         # Hyper-parameters
         self.epochs = epochs
         self.t0 = t0
@@ -68,12 +65,10 @@ class SGD:
                 yi = Y.values[r: r+1]
                 # Difference between predicted and actual values
                 error = np.dot(xi, self.thetas) - yi
-                # Sum of squares function
-                cost = np.sum(error ** 2) / (2 * self.m)
                 # Compute gradient
                 grad = 2 * np.dot(xi.T, error)
                 # Define Learning rate
-                lr = self.learning_schedule(self.epochs * self.m + i)
+                lr = self.learning_schedule(epoch * self.m + i)
                 # Update coefficients
                 self.thetas = self.thetas - (lr * grad)
         return self.thetas
@@ -93,10 +88,11 @@ class SGD:
 # Defines the Mini-Batch Gradient Descent linear regression class
 class MBGD:
 
-    def __init__(self, epochs=10000, learning_rate=0.01, mini_batch_size=20):
+    def __init__(self, epochs=1000000, t0=5, t1=50, mini_batch_size=250):
         # Hyper-parameters
         self.epochs = epochs
-        self.learning_rate = learning_rate
+        self.t0 = t0
+        self.t1 = t1
         self.mini_batch_size = mini_batch_size
 
     def batch_size(self, X, Y, b):
@@ -109,6 +105,9 @@ class MBGD:
         Y_new = Y.values[b:new_size]
         return X_new, Y_new
 
+    def learning_schedule(self, t):
+        return self.t0 / (t + self.t1)
+
     def fit(self, X, Y):
         # Initialising weights
         self.m, self.n = X.shape
@@ -116,19 +115,19 @@ class MBGD:
         num_batches = self.m/self.mini_batch_size
 
         # Iterates over the number of epochs chosen
-        for i in range(self.epochs):
+        for epoch in range(self.epochs):
             # Iterates over the number of batches defined as: the number of rows / hyper-parameter mini_batch_size
             for b in range(int(num_batches)):
                 # Define the batches of X and Y
                 X_batch, Y_batch = self.batch_size(X, Y, b)
                 # Difference between predicted and actual values
                 error = np.dot(X_batch, self.thetas) - Y_batch
-                # Sum of squares function
-                cost = np.sum(error ** 2) / (2 * self.m)
                 # Compute gradients
-                grad = np.dot(X_batch.T, error) / self.mini_batch_size
+                grad = 2 * np.dot(X_batch.T, error) / self.mini_batch_size
+                # Define learning rate
+                lr = self.learning_schedule(epoch * self.m + b)
                 # Update coefficients
-                self.thetas = self.thetas - (self.learning_rate * grad)
+                self.thetas = self.thetas - (lr * grad)
         return self.thetas
 
     # Function used to predict dependent variable of test set data
@@ -149,7 +148,7 @@ def main():
     mgd = MBGD()
 
     # Reads the dataset and removes the serial number column
-    df = pd.read_csv('/home/alecwilson/PycharmProjects/Maths_for_AI_Coursework/Admission_Predict_Ver1.csv')
+    df = pd.read_csv('./Admission_Predict_Ver1.csv')
     df = df.drop(columns='Serial No.')
 
     # Normalise the values
@@ -167,21 +166,25 @@ def main():
     Y_train = Y.iloc[:400]
     X_test = X.iloc[400:]
     Y_test = Y.iloc[400:]
-
-    '''gd.fit(X_train, Y_train)
-    y_pred = sgd.predict(X_test)
+    '''
+    gd.fit(X_train, Y_train)
+    y_pred = gd.predict(X_test)
     print("Predicted values", y_pred[:5])
+    print("Actual values", Y_test[:5])
     gd.eval(X_test, Y_test)
 
+    '''
     sgd.fit(X_train, Y_train)
     y_pred = sgd.predict(X_test)
     print("Predicted values", y_pred[:5])
+    print("Actual values", Y_test[:5])
     sgd.eval(X_test, Y_test)
-'''
+    '''
     mgd.fit(X_train, Y_train)
     y_pred = mgd.predict(X_test)
     print("Predicted values", y_pred[:5])
-    mgd.eval(X_test, Y_test)
+    print("Actual values", Y_test[:5])
+    mgd.eval(X_test, Y_test)'''
 
 if __name__ == '__main__':
     main()
