@@ -5,7 +5,7 @@ import pandas as pd
 # Defines the Batch Gradient Descent linear regression class
 class BGD:
 
-    def __init__(self, iterations=100000, learning_rate=0.4):
+    def __init__(self, iterations=1000, learning_rate=0.1):
         # Hyper-parameters
         self.iterations = iterations
         self.learning_rate = learning_rate
@@ -23,7 +23,7 @@ class BGD:
             # Compute gradient
             grad = np.dot(X.T, error) / self.m
             # Update coefficients
-            self.thetas = self.thetas - (self.learning_rate*grad)
+            self.thetas = self.thetas - (self.learning_rate * grad)
         return self.thetas
 
     # Function used to predict dependent variable of test set data
@@ -40,7 +40,7 @@ class BGD:
 
 # Defines the Stochastic Gradient Descent linear regression class
 class SGD:
-    def __init__(self, epochs=10000, t0=5, t1=20):
+    def __init__(self, epochs=1000, t0=5, t1=50):
         # Hyper-parameters
         self.epochs = epochs
         self.t0 = t0
@@ -88,12 +88,11 @@ class SGD:
 # Defines the Mini-Batch Gradient Descent linear regression class
 class MBGD:
 
-    def __init__(self, epochs=1000000, t0=5, t1=50, mini_batch_size=250):
+    def __init__(self, epochs=1000, mini_batch_size=200, learning_rate=0.2):
         # Hyper-parameters
         self.epochs = epochs
-        self.t0 = t0
-        self.t1 = t1
         self.mini_batch_size = mini_batch_size
+        self.learning_rate = learning_rate
 
     def batch_size(self, X, Y, b):
         # Define structure
@@ -104,9 +103,6 @@ class MBGD:
         X_new = X.iloc[b:new_size]
         Y_new = Y.values[b:new_size]
         return X_new, Y_new
-
-    def learning_schedule(self, t):
-        return self.t0 / (t + self.t1)
 
     def fit(self, X, Y):
         # Initialising weights
@@ -124,10 +120,8 @@ class MBGD:
                 error = np.dot(X_batch, self.thetas) - Y_batch
                 # Compute gradients
                 grad = 2 * np.dot(X_batch.T, error) / self.mini_batch_size
-                # Define learning rate
-                lr = self.learning_schedule(epoch * self.m + b)
                 # Update coefficients
-                self.thetas = self.thetas - (lr * grad)
+                self.thetas = self.thetas - (self.learning_rate * grad)
         return self.thetas
 
     # Function used to predict dependent variable of test set data
@@ -172,8 +166,8 @@ def main():
     print("Predicted values", y_pred[:5])
     print("Actual values", Y_test[:5])
     gd.eval(X_test, Y_test)
-
     '''
+    
     sgd.fit(X_train, Y_train)
     y_pred = sgd.predict(X_test)
     print("Predicted values", y_pred[:5])
