@@ -1,5 +1,4 @@
 import numpy as np
-import matplotlib.pyplot as plt
 import pandas as pd
 
 # Defines the Batch Gradient Descent linear regression class
@@ -40,12 +39,14 @@ class BGD:
 
 # Defines the Stochastic Gradient Descent linear regression class
 class SGD:
-    def __init__(self, epochs=1000, t0=5, t1=50):
+    def __init__(self, epochs=100, t0=5, t1=50):
         # Hyper-parameters
         self.epochs = epochs
         self.t0 = t0
         self.t1 = t1
 
+    # Defines a learning rate which decreases as the number of epochs which have been iterated over the
+    # dataset increases. Required to enable the Stochastic Gradient descent function to settle at a minimum.
     def learning_schedule(self, t):
         return self.t0 / (t + self.t1)
 
@@ -155,30 +156,27 @@ def main():
     X = df_norm.drop(columns='Chance of Admit ')
     Y = df_norm[['Chance of Admit ']]
 
-    # Number of training examples and features
+    # Number of training and test examples
     X_train = X.iloc[:400]
     Y_train = Y.iloc[:400]
     X_test = X.iloc[400:]
     Y_test = Y.iloc[400:]
-    '''
+
+    print("----------------------------------------------------")
     gd.fit(X_train, Y_train)
-    y_pred = gd.predict(X_test)
-    print("Predicted values", y_pred[:5])
-    print("Actual values", Y_test[:5])
+    print("Batch Gradient Descent Evaluation Metrics: ")
     gd.eval(X_test, Y_test)
-    '''
-    
+    print("----------------------------------------------------")
+
     sgd.fit(X_train, Y_train)
-    y_pred = sgd.predict(X_test)
-    print("Predicted values", y_pred[:5])
-    print("Actual values", Y_test[:5])
+    print("Stochastic Gradient Descent Evaluation Metrics: ")
     sgd.eval(X_test, Y_test)
-    '''
+    print("----------------------------------------------------")
+
     mgd.fit(X_train, Y_train)
-    y_pred = mgd.predict(X_test)
-    print("Predicted values", y_pred[:5])
-    print("Actual values", Y_test[:5])
-    mgd.eval(X_test, Y_test)'''
+    print("Mini-Batch Gradient Descent Evaluation Metrics: ")
+    mgd.eval(X_test, Y_test)
+    print("----------------------------------------------------")
 
 if __name__ == '__main__':
     main()
